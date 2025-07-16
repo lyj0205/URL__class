@@ -1,0 +1,100 @@
+'''
+
+import lombok.*;
+
+@Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class Token {
+    private String grantType;
+    private String accessToken;
+    private String refreshToken;
+    private String key;
+}
+
+`Token` 클래스는 \*\*JWT 관련 정보(Access Token, Refresh Token 등)를 담는 DTO(Data Transfer Object)\*\*입니다. 이 DTO는 주로 **로그인 성공 시 클라이언트에게 토큰을 전달하거나**,
+**DB에 RefreshToken을 저장할 때 정보를 옮기기 위해 사용됩니다.**
+
+---
+
+### ✅ 클래스 개요
+
+```java
+@Builder
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class Token { ... }
+```
+
+#### 📌 Lombok 애노테이션 설명
+
+* `@Builder`: 빌더 패턴을 사용할 수 있게 해 줍니다 (예: `Token.builder().accessToken("...").build()`).
+* `@Getter`, `@Setter`: 모든 필드에 대해 Getter/Setter 자동 생성.
+* `@NoArgsConstructor`: 기본 생성자 생성.
+* `@AllArgsConstructor`: 모든 필드를 받는 생성자 생성.
+
+---
+
+### ✅ 필드 설명
+
+```java
+private String grantType;
+```
+
+* 일반적으로 "Bearer" 문자열이 들어갑니다.
+* 클라이언트가 인증 헤더에 `Authorization: Bearer [AccessToken]` 형식으로 전송할 때 사용됩니다.
+
+```java
+private String accessToken;
+```
+
+* 실제 로그인 후 발급되는 JWT **액세스 토큰**입니다.
+* 클라이언트가 서버에 API 요청할 때 인증 수단으로 사용합니다.
+
+```java
+private String refreshToken;
+```
+
+* 액세스 토큰이 만료되었을 때, **새로운 토큰을 발급받기 위해 사용되는 토큰**입니다.
+* 보통 DB나 Redis 등에 저장해두고, 일정 기간 내 재발급 요청이 오면 새로운 액세스 토큰을 만들어 줍니다.
+
+```java
+private String key;
+```
+
+* 이 토큰이 어떤 사용자에게 속하는지 식별하는 값입니다.
+* 보통 **이메일 또는 사용자 ID** 역할을 합니다.
+  → 이 값은 `RefreshToken` 엔티티의 `keyEmail` 필드로 매핑되어 저장됩니다.
+
+---
+
+### ✨ 정리
+
+| 필드명            | 설명                      |
+| -------------- | ----------------------- |
+| `grantType`    | 토큰의 타입 ("Bearer" 등)     |
+| `accessToken`  | 사용자 인증에 사용되는 JWT 액세스 토큰 |
+| `refreshToken` | 재발급 요청 시 사용하는 리프레시 토큰   |
+| `key`          | 사용자 식별용 키 (이메일, ID 등)   |
+
+---
+
+### 💡 사용 예시
+
+```java
+Token token = Token.builder()
+    .grantType("Bearer")
+    .accessToken("eyJhbGciOiJIUzI1...")
+    .refreshToken("dskjlfsdfsdj...")
+    .key("user@email.com")
+    .build();
+```
+
+→ 이처럼 로그인 성공 후 `Token` 객체를 만들어서 클라이언트에 전달하거나,
+→ `RefreshToken.createRefreshToken(token)` 으로 DB에 저장하는 데 활용합니다.
+
+'''
