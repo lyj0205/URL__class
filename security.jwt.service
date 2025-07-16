@@ -1,0 +1,158 @@
+'''
+
+import com.example.noticeboard.common.response.ResponseCode;
+import com.example.noticeboard.common.response.ResponseMessage;
+import com.example.noticeboard.security.exception.TokenForgeryException;
+import com.example.noticeboard.security.jwt.repository.RefreshTokenRepository;
+import com.example.noticeboard.security.jwt.support.CookieSupport;
+import com.example.noticeboard.security.jwt.support.JwtTokenProvider;
+import com.example.noticeboard.security.jwt.domain.RefreshToken;
+import com.example.noticeboard.security.jwt.dto.Token;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Arrays;
+import java.util.NoSuchElementException;
+
+import static com.example.noticeboard.security.jwt.domain.RefreshToken.creareRefreshToken;
+
+@Service
+@RequiredArgsConstructor
+public class JwtService {
+    private final JwtTokenProvider jwtTokenProvider;
+    private final RefreshTokenRepository refreshTokenRepository;
+
+    @Transactional
+    public void login(Token token) {
+        RefreshToken refreshToken = creareRefreshToken(token);
+        String loginUserEmail = refreshToken.getKeyEmail();
+
+        refreshTokenRepository.existsByKeyEmail(loginUserEmail).ifPresent(a -> {
+            refreshTokenRepository.deleteByKeyEmail(loginUserEmail);
+        });
+
+        refreshTokenRepository.save(refreshToken);
+    }
+
+    public RefreshToken getRefreshToken(HttpServletRequest request) {
+        String refreshToken = getRefreshTokenFromHeader(request);
+
+        return refreshTokenRepository.findByToken(refreshToken)
+                .orElseThrow(() -> new TokenForgeryException("알 수 없는 RefreshToken 입니다."));
+    }
+
+    public ResponseMessage validateRefreshToken(HttpServletRequest request , HttpServletResponse response) {
+        try {
+            RefreshToken token = getRefreshToken(request);
+            String accessToken = jwtTokenProvider.validateRefreshToken(token);
+
+            response.addHeader("Set-Cookie" , CookieSupport.createAccessToken(accessToken).toString());
+
+            return ResponseMessage.of(ResponseCode.CREATE_ACCESS_TOKEN);
+        } catch (NoSuchElementException e) {
+            CookieSupport.deleteJwtTokenInCookie(response);
+
+            throw new TokenForgeryException("변조된 RefreshToken 입니다.");
+        }
+    }
+
+    public String getRefreshTokenFromHeader(HttpServletRequest request) {
+        Cookie cookies[] = request.getCookies();
+
+        if (cookies != null && cookies.length != 0) {
+            return Arrays.stream(cookies)
+                    .filter(c -> c.getName().equals("refreshToken")).findFirst().map(Cookie::getValue)
+                    .orElseThrow(() -> new SecurityException("인증되지 않은 사용자입니다."));
+        }
+
+        throw new SecurityException("인증되지 않은 사용자입니다.");
+    }
+
+}
+
+`JwtService` 클래스는 JWT 인증에서 **리프레시 토큰 관리 및 검증**을 담당하는 서비스 클래스입니다.
+
+---
+
+# JwtService 클래스 기능 요약
+
+* 리프레시 토큰 저장, 삭제, 검증을 수행합니다.
+* 클라이언트의 요청에서 리프레시 토큰을 쿠키에서 읽어와 검증합니다.
+* 리프레시 토큰 유효성 검사 후 새 액세스 토큰을 발급하고, 쿠키에 담아 응답합니다.
+* 위조된 토큰에 대해선 예외를 발생시키고, 쿠키를 삭제합니다.
+
+---
+
+## 필드
+
+```java
+private final JwtTokenProvider jwtTokenProvider;
+private final RefreshTokenRepository refreshTokenRepository;
+```
+
+* `JwtTokenProvider`: JWT 토큰 생성 및 검증을 담당하는 컴포넌트.
+* `RefreshTokenRepository`: 리프레시 토큰 저장소(DB) 접근용 인터페이스.
+
+---
+
+## 주요 메서드
+
+### 1. `login(Token token)`
+
+* 로그인 성공 시 호출.
+* `Token` DTO로부터 리프레시 토큰 정보를 만들어서(`creareRefreshToken`)
+* 이미 DB에 존재하는 같은 이메일(`keyEmail`)의 리프레시 토큰이 있다면 삭제 후
+* 새 리프레시 토큰을 저장합니다.
+
+즉, 사용자별로 하나의 최신 리프레시 토큰만 유지하는 역할을 합니다.
+
+---
+
+### 2. `getRefreshToken(HttpServletRequest request)`
+
+* HTTP 요청의 쿠키에서 리프레시 토큰을 추출(`getRefreshTokenFromHeader` 메서드 활용)
+* 추출한 토큰을 DB에서 찾아서 반환
+* DB에 없으면 `TokenForgeryException` (위조 토큰 예외)을 발생시킵니다.
+
+---
+
+### 3. `validateRefreshToken(HttpServletRequest request, HttpServletResponse response)`
+
+* 클라이언트 요청의 리프레시 토큰을 검증합니다.
+* 정상 토큰이면 `jwtTokenProvider`를 통해 새 액세스 토큰을 생성하고
+* 새 액세스 토큰을 쿠키에 넣어 응답 헤더에 추가합니다.
+* 처리 성공 시 `ResponseMessage`에 성공 코드(`CREATE_ACCESS_TOKEN`)를 담아 반환합니다.
+* 예외 발생 시 (토큰 위조, DB 미존재 등)
+
+  * 클라이언트 쿠키에서 JWT 토큰을 삭제하고
+  * `TokenForgeryException` 예외를 던집니다.
+
+---
+
+### 4. `getRefreshTokenFromHeader(HttpServletRequest request)`
+
+* HTTP 요청 쿠키에서 이름이 `"refreshToken"`인 쿠키 값을 찾아 반환합니다.
+* 없으면 `SecurityException("인증되지 않은 사용자입니다.")`를 던집니다.
+
+---
+
+## 추가 설명
+
+* `creareRefreshToken(Token token)` 메서드는 `RefreshToken` 엔티티를 생성하는 static 메서드로, 토큰 DTO에서 정보를 꺼내서 만듭니다.
+* 쿠키 관리(`CookieSupport.createAccessToken()`, `CookieSupport.deleteJwtTokenInCookie()`)는 별도의 유틸 클래스로 처리하고 있습니다.
+* `@Transactional`이 붙은 `login` 메서드는 DB에 저장과 삭제 작업을 트랜잭션 단위로 처리하여 안전성을 보장합니다.
+
+---
+
+## 전체적인 역할
+
+* 로그인 시 리프레시 토큰을 DB에 저장/갱신
+* 클라이언트 요청 시 쿠키에서 리프레시 토큰을 읽어와 검증
+* 검증 완료 시 새 액세스 토큰을 생성해 쿠키에 넣어 응답
+* 위조나 만료 등 문제 발생 시 예외 처리 및 쿠키 삭제
+
+'''
