@@ -1,0 +1,65 @@
+'''
+
+public class InvalidTokenException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+
+    public InvalidTokenException(String message) {
+        super(message);
+    }
+}
+
+`InvalidTokenException` 클래스는 **잘못된(유효하지 않은) 토큰이 감지되었을 때 발생시키는 사용자 정의 예외 클래스**입니다.
+---
+
+### ✅ 클래스 설명
+
+```java
+public class InvalidTokenException extends RuntimeException {
+    private static final long serialVersionUID = 1L;
+
+    public InvalidTokenException(String message) {
+        super(message);
+    }
+}
+```
+
+* `RuntimeException`을 상속한 **unchecked 예외**입니다.
+  → 예외 처리(try-catch)가 강제되지 않으며, 토큰 검증 과정에서 문제가 발견되면 던집니다.
+
+* `serialVersionUID`: 자바 직렬화 시 클래스 버전 관리용 필드로, 명시적으로 선언하여 안정성을 높입니다.
+
+* 생성자에서 예외 메시지를 받아 부모 클래스인 `RuntimeException`에 전달합니다.
+
+---
+
+### 💡 사용 목적
+
+이 예외는 JWT 또는 기타 토큰 검증 과정에서 다음과 같은 상황에 사용할 수 있습니다:
+
+* 토큰이 아예 없거나 (null 또는 빈 문자열)
+* 토큰 형식이 올바르지 않음
+* 토큰이 만료되었거나 변조된 경우
+* 기타 토큰 검증에서 실패한 경우
+
+예를 들어,
+
+```java
+if (!isValid(token)) {
+    throw new InvalidTokenException("유효하지 않은 토큰입니다.");
+}
+```
+
+이렇게 토큰 검증 실패를 명확하게 알리고, 이후 예외 처리 핸들러에서 적절히 응답할 수 있도록 합니다.
+
+---
+
+### ✨ 요약
+
+| 항목     | 내용                                |
+| ------ | --------------------------------- |
+| 클래스 이름 | `InvalidTokenException`           |
+| 상속     | `RuntimeException` (unchecked 예외) |
+| 용도     | 유효하지 않은 토큰 발견 시 던지는 예외            |
+| 메시지 전달 | 생성자에서 예외 메시지 설정 가능                |
+
+'''
