@@ -1,0 +1,84 @@
+'''
+
+import java.util.Optional;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import com.example.noticeboard.security.jwt.domain.RefreshToken;
+
+public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
+	   Optional<RefreshToken> findByToken(String token);
+
+	   @Query(value = "SELECT p from RefreshToken p where p.keyEmail = :userEmail")
+	   Optional<RefreshToken> existsByKeyEmail(@Param("userEmail") String userEmail);
+
+	   void deleteByKeyEmail(String userEmail);
+}
+
+`RefreshTokenRepository` 인터페이스는 **JPA를 이용해 `RefreshToken` 엔티티에 접근하는 데이터베이스 레포지토리** 역할을 합니다.
+
+---
+
+### ✅ 인터페이스 개요
+
+```java
+public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> { ... }
+```
+
+* `JpaRepository<RefreshToken, Long>`를 상속하여 기본 CRUD 기능과 페이징, 정렬 기능을 사용할 수 있습니다.
+* `RefreshToken` 엔티티를 `tokenId(Long)`를 기본 키로 관리합니다.
+
+---
+
+### ✅ 주요 메서드 기능
+
+#### 1. `Optional<RefreshToken> findByToken(String token)`
+
+* **기능**: DB에서 리프레시 토큰 값(`token` 필드)으로 해당 토큰 정보를 찾습니다.
+* **반환**: 토큰이 존재하면 `Optional` 안에 `RefreshToken` 객체를, 없으면 빈 `Optional` 반환.
+
+---
+
+#### 2. `Optional<RefreshToken> existsByKeyEmail(@Param("userEmail") String userEmail)`
+
+* **기능**: `keyEmail` 컬럼에 특정 이메일(`userEmail`)이 존재하는지 확인하는 커스텀 쿼리입니다.
+* **JPQL 사용**: `"SELECT p from RefreshToken p where p.keyEmail = :userEmail"`
+
+  * `p`는 `RefreshToken` 엔티티의 별칭입니다.
+* **반환**: 해당 이메일에 연결된 리프레시 토큰이 있으면 `Optional`에 담아 반환, 없으면 빈 값 반환.
+
+---
+
+#### 3. `void deleteByKeyEmail(String userEmail)`
+
+* **기능**: 특정 이메일(`keyEmail`)에 해당하는 리프레시 토큰을 삭제합니다.
+* 이메일에 해당하는 토큰을 DB에서 제거할 때 사용합니다.
+
+---
+
+### ✨ 요약
+
+| 메서드 이름                     | 기능 설명                               |
+| -------------------------- | ----------------------------------- |
+| `findByToken(String)`      | 토큰 값을 이용해 `RefreshToken` 조회         |
+| `existsByKeyEmail(String)` | 이메일로 리프레시 토큰 존재 여부 확인 (Optional 반환) |
+| `deleteByKeyEmail(String)` | 이메일로 리프레시 토큰 삭제                     |
+
+---
+
+### 💡 실제 사용 예시
+
+```java
+// 토큰 조회
+Optional<RefreshToken> refreshToken = refreshTokenRepository.findByToken(tokenString);
+
+// 이메일로 토큰 존재 여부 확인
+Optional<RefreshToken> tokenByEmail = refreshTokenRepository.existsByKeyEmail(userEmail);
+
+// 이메일로 토큰 삭제
+refreshTokenRepository.deleteByKeyEmail(userEmail);
+```
+
+'''
