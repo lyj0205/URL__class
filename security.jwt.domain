@@ -1,0 +1,142 @@
+'''
+
+import com.example.noticeboard.security.jwt.dto.Token;
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+
+@Builder
+@Entity
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+public class RefreshToken {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(nullable = false)
+    private Long tokenId;
+
+    @Column(nullable = false)
+    private String token;
+
+    @Column(nullable = false)
+    private String keyEmail;
+
+    public static RefreshToken defaultRefreshToken() {
+        return RefreshToken.builder()
+                .tokenId(1L)
+                .token(" ")
+                .keyEmail(" ")
+                .build();
+    }
+
+    public static RefreshToken creareRefreshToken(Token token) {
+        return RefreshToken.builder()
+                .keyEmail(token.getKey())
+                .token(token.getRefreshToken())
+                .build();
+    }
+
+}
+
+`RefreshToken` 클래스는 **사용자의 리프레시 토큰을 데이터베이스에 저장하고 관리하기 위한 JPA 엔티티 클래스**입니다. 
+
+---
+
+### ✅ 클래스 설명
+
+```java
+@Builder
+@Entity
+@Getter
+@NoArgsConstructor
+@AllArgsConstructor
+public class RefreshToken { ... }
+```
+
+* `@Entity`: 이 클래스는 JPA가 관리하는 테이블로 매핑됩니다. → 실제 DB에 `refresh_token` 같은 테이블로 저장됩니다.
+* `@Builder`: 빌더 패턴을 사용하여 객체를 쉽게 생성할 수 있게 합니다.
+* `@Getter`: 모든 필드에 대한 getter 메서드를 자동 생성합니다.
+* `@NoArgsConstructor` / `@AllArgsConstructor`: 기본 생성자와 모든 필드를 인자로 받는 생성자를 생성합니다.
+
+---
+
+### ✅ 필드 설명
+
+```java
+@Id
+@GeneratedValue(strategy = GenerationType.IDENTITY)
+@Column(nullable = false)
+private Long tokenId;
+```
+
+* 기본키(`PK`) 역할을 하는 ID입니다.
+* `IDENTITY` 전략은 DB에서 자동 증가되는 값(AUTO\_INCREMENT)을 의미합니다.
+
+```java
+@Column(nullable = false)
+private String token;
+```
+
+* 실제 저장되는 **리프레시 토큰 값**입니다.
+
+```java
+@Column(nullable = false)
+private String keyEmail;
+```
+
+* 토큰과 연결된 사용자 식별 키(예: 이메일)를 저장합니다.
+
+---
+
+### ✅ 메서드 설명
+
+#### 1. `defaultRefreshToken()`
+
+```java
+public static RefreshToken defaultRefreshToken() {
+    return RefreshToken.builder()
+            .tokenId(1L)
+            .token(" ")
+            .keyEmail(" ")
+            .build();
+}
+```
+
+* 기본값으로 채워진 "빈 리프레시 토큰 객체"를 생성합니다.
+* 예외 상황 등에서 **기본 토큰 객체**가 필요할 때 사용합니다.
+
+#### 2. `creareRefreshToken(Token token)`
+
+```java
+public static RefreshToken creareRefreshToken(Token token) {
+    return RefreshToken.builder()
+            .keyEmail(token.getKey())
+            .token(token.getRefreshToken())
+            .build();
+}
+```
+
+* 전달받은 `Token` 객체로부터 필요한 정보를 꺼내서 `RefreshToken` 객체를 생성합니다.
+* `Token` 클래스에는 아마도 `getKey()`와 `getRefreshToken()` 메서드가 정의되어 있을 것입니다.
+
+📝 오타 주의:
+
+* `creareRefreshToken` → 아마도 **createRefreshToken**이 의도된 메서드명일 가능성이 높습니다.
+
+---
+
+### ✨ 요약
+
+| 항목    | 설명                                                          |
+| ----- | ----------------------------------------------------------- |
+| 목적    | 리프레시 토큰을 DB에 저장하기 위한 JPA 엔티티                                |
+| 주요 필드 | `tokenId`, `token`, `keyEmail`                              |
+| 사용 예  | 로그인 시 발급한 리프레시 토큰을 DB에 저장하거나 갱신할 때 사용                       |
+| 특징    | `@Builder` 패턴으로 객체 생성 편리, `default`와 `create` 메서드로 유틸 기능 제공 |
+
+'''
+
+
