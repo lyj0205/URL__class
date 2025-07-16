@@ -1,0 +1,73 @@
+'''
+package com.example.noticeboard.security.controller;
+
+import com.example.noticeboard.common.response.ResponseCode;
+import com.example.noticeboard.common.response.ResponseMessage;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequiredArgsConstructor
+public class SecurityController {
+
+    @GetMapping(value = "/authorization/denied")
+    public ResponseEntity<ResponseMessage> informAuthorizationDenied() {
+        ResponseMessage message = ResponseMessage.of(ResponseCode.AUTHORIZATION_ERROR , "로그인이 필요한 서비스입니다.");
+
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(message);
+    }
+
+}
+
+`SecurityController` 클래스는 **Spring Security에서 인가(Authorization) 실패 시 사용자에게 알림을 제공하는 컨트롤러**입니다.
+
+---
+
+### ✅ 클래스 설명
+
+```java
+@RestController
+@RequiredArgsConstructor
+public class SecurityController { ... }
+```
+
+* `@RestController`: REST API 응답을 제공하는 컨트롤러입니다. (`@Controller + @ResponseBody`)
+* `@RequiredArgsConstructor`: final 또는 @NonNull 필드에 대해 자동으로 생성자를 생성합니다.
+  이 클래스에서는 필드가 없기 때문에 사실상 의미는 없습니다.
+
+---
+
+### ✅ 메서드: `informAuthorizationDenied()`
+
+```java
+@GetMapping(value = "/authorization/denied")
+public ResponseEntity<ResponseMessage> informAuthorizationDenied() {
+    ResponseMessage message = ResponseMessage.of(ResponseCode.AUTHORIZATION_ERROR , "로그인이 필요한 서비스입니다.");
+    return ResponseEntity.status(HttpStatus.FORBIDDEN).body(message);
+}
+```
+
+#### 기능 설명:
+
+* **URL**: `/authorization/denied`로 GET 요청이 들어왔을 때 실행됩니다.
+* **의도된 사용처**: 사용자가 로그인이 필요한 페이지에 접근했지만 **로그인하지 않았거나 권한이 없는 경우**, 이 URL로 리다이렉트되도록 설정하는 경우입니다.
+* **ResponseMessage**: 커스텀 응답 객체를 사용하여 일관된 형식으로 응답을 줍니다.
+
+  * 예: `ResponseCode.AUTHORIZATION_ERROR` (아마도 코드값이 `403` 또는 관련 메시지일 것으로 추정됩니다)
+  * 메시지: `"로그인이 필요한 서비스입니다."`
+* **HTTP 상태코드**: `403 Forbidden`
+  → 인증은 되었지만, 해당 리소스를 사용할 권한이 없음을 의미합니다.
+
+---
+
+### 💬 쉽게 정리하면
+
+이 컨트롤러는 로그인하지 않았거나 권한이 없을 때
+👉 사용자에게 `"로그인이 필요한 서비스입니다."`라는 메시지를 `403` 상태코드와 함께 보내주는 역할을 합니다.
+주로 **Spring Security의 OAuth2 실패 처리 또는 접근 거부 리다이렉트** 경로로 사용됩니다.
+
+'''
+
