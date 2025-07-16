@@ -1,5 +1,4 @@
 '''
-package com.example.noticeboard.security.controller;
 
 import com.example.noticeboard.common.response.ResponseCode;
 import com.example.noticeboard.common.response.ResponseMessage;
